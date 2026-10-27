@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معامل القالب للكونكريت - نظام الإدارة الموحد</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0f172a',
+                        },
+                        amberCustom: '#d97706',
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        input, select, button {
+            font-weight: 700 !important;
+        }
+
+        /* Thermal Printing Styling (80mm) & A4 Reports */
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; font-size: 12px !important; }
+            
+            .thermal-receipt {
+                width: 78mm !important;
+                padding: 4mm !important;
+                margin: 0 auto !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+                color: black !important;
+                line-height: 1.3 !important;
+                page-break-after: always;
+            }
+            .thermal-receipt table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+            }
+            .thermal-receipt th, .thermal-receipt td {
+                border-bottom: 1px dashed #000 !important;
+                padding: 3px 0 !important;
+            }
+
+            /* A4 Print Layout */
+            .a4-print-container {
+                display: block !important;
+                width: 100% !important;
+                padding: 10mm !important;
+                background: white !important;
+                color: black !important;
+            }
+            .a4-print-container table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                margin-top: 15px;
+            }
+            .a4-print-container th, .a4-print-container td {
+                border: 1px solid #333 !important;
+                padding: 8px !important;
+                text-align: center !important;
+                font-size: 12px !important;
+                font-weight: 700 !important;
+            }
+        }
+
+        .print-only { display: none; }
+        .tab-btn.active {
+            background-color: #0369a1;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(3, 105, 161, 0.3);
+        }
+    </style>
+</head>
+<body class="text-slate-900 min-h-screen flex flex-col antialiased">
+
+    <!-- Notification Container -->
+    <div id="toastContainer" class="fixed top-5 left-5 z-50 flex flex-col gap-2 no-print"></div>
+
+    <!-- Quick Add Customer Modal -->
+    <div id="quickCustomerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-slate-100 space-y-4">
+            <h3 class="font-black text-slate-900 text-lg flex items-center gap-2">
+                <i class="fa-solid fa-user-plus text-brand-600"></i>
+                <span>إضافة زبون جديد</span>
+            </h3>
+            <div>
+                <label class="block text-sm font-black text-slate-800 mb-1">اسم الزبون / المشروع</label>
+                <input type="text" id="quickCustNameInput" class="w-full p-3.5 border-2 border-slate-300 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-brand-500" placeholder="أدخل اسم الزبون...">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeQuickCustomerModal()" class="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-black">إلغاء</button>
+                <button type="button" onclick="saveQuickCustomer()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-black">حفظ واختيار</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Add Driver Modal -->
+    <div id="quickDriverModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 backdrop-blur-sm hidden">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-slate-100 space-y-4">
+            <h3 class="font-black text-slate-900 text-lg flex items-center gap-2">
+                <i class="fa-solid fa-truck-fast text-brand-600"></i>
+                <span>إضافة سائق وآلية جديدة</span>
+            </h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-black text-slate-800 mb-1">اسم السائق</label>
+                    <input type="text" id="quickDriverNameInput" class="w-full p-3.5 border-2 border-slate-300 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-brand-500" placeholder="أدخل اسم السائق...">
+                </div>
+                <div>
+                    <label class="block text-sm font-black text-slate-800 mb-1">رمز الآلية / الخلاطة</label>
+                    <input type="text" id="quickVehicleInput" class="w-full p-3.5 border-2 border-slate-300 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-brand-500" placeholder="مثال: MIX-05">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button type="button" onclick="closeQuickDriverModal()" class="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-black">إلغاء</button>
+                <button type="button" onclick="saveQuickDriver()" class="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-black">حفظ واختيار</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal (Passcode Screen) -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/85 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-slate-100">
+            <div class="text-center mb-6">
+                <div class="w-18 h-18 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl">
+                    <i class="fa-solid fa-industry"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-900">معامل القالب للكونكريت</h2>
+                <p class="text-slate-600 font-bold text-sm mt-1">يرجى إدخال رمز الدخول للمتابعة</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-black text-slate-800 mb-1">رمز الدخول السري</label>
+                    <div class="relative">
+                        <input type="password" id="passcodeInput" class="w-full pl-10 pr-4 py-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-center text-xl font-black tracking-widest" placeholder="••••" autofocus>
+                        <i class="fa-solid fa-lock absolute left-3 top-4 text-slate-400"></i>
+                    </div>
+                </div>
+
+                <button onclick="handleLogin()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-black py-3.5 px-4 rounded-xl transition duration-200 shadow-lg shadow-brand-600/30 flex items-center justify-center gap-2 text-base">
+                    <span>تسجيل الدخول</span>
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+
+                <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-600 text-center space-y-1">
+                    <p class="font-black text-slate-800">الرموز الافتراضية للتجربة:</p>
+                    <div class="flex justify-center gap-3 text-slate-700 font-bold flex-wrap">
+                        <span class="bg-slate-100 px-2 py-1 rounded">مدير: 1111</span>
+                        <span class="bg-slate-100 px-2 py-1 rounded">شمالي: 2222</span>
+                        <span class="bg-slate-100 px-2 py-1 rounded">جنوبي: 3333</span>
+                        <span class="bg-slate-100 px-2 py-1 rounded">مشاهد: 4444</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application Header -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-40 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Brand Info -->
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div class="bg-brand-500 text-white p-2.5 rounded-xl">
+                        <i class="fa-solid fa-truck-monster text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-xl sm:text-2xl tracking-tight leading-tight">معامل القالب للكونكريت</h1>
+                        <p class="text-xs text-brand-400 font-black flex items-center gap-2 mt-0.5">
+                            <span><i class="fa-solid fa-phone text-xs"></i> 0780150488</span>
+                            <span>|</span>
+                            <span>07730150888</span>
+                        </p>
+                    </div>
+                </div>
+
+                <!-- User Session & Firestore Status -->
+                <div class="flex items-center space-x-4 space-x-reverse">
+                    <div class="hidden sm:flex items-center gap-2 bg-slate-800 px-3 py-2 rounded-xl text-xs font-bold">
+                        <span id="dbStatusDot" class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span id="dbStatusText" class="text-slate-200">جاري الاتصال بـ Firestore...</span>
+                    </div>
+
+                    <div class="flex items-center gap-3 bg-slate-800/90 px-3.5 py-2 rounded-xl border border-slate-700">
+                        <div class="text-left">
+                            <p id="activeUserRole" class="text-xs font-black text-brand-400">مشاهد</p>
+                            <p id="activeUserName" class="text-xs font-bold text-slate-300">---</p>
+                        </div>
+                        <button onclick="handleLogout()" title="تسجيل الخروج" class="text-slate-400 hover:text-red-400 transition p-1">
+                            <i class="fa-solid fa-right-from-bracket text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="flex space-x-2 space-x-reverse overflow-x-auto py-2.5 border-t border-slate-800 text-sm sm:text-base scrollbar-none font-bold">
+                <button id="tab-north" onclick="switchTab('north')" class="tab-btn active px-5 py-2.5 rounded-xl font-black transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-compass-north"></i>
+                    <span>الموقع الشمالي</span>
+                </button>
+                <button id="tab-south" onclick="switchTab('south')" class="tab-btn px-5 py-2.5 rounded-xl font-black text-slate-200 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-compass-south"></i>
+                    <span>الموقع الجنوبي</span>
+                </button>
+                <button id="tab-log" onclick="switchTab('log')" class="tab-btn px-5 py-2.5 rounded-xl font-black text-slate-200 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>سجل التجهيز</span>
+                </button>
+                <button id="tab-trips" onclick="switchTab('trips')" class="tab-btn px-5 py-2.5 rounded-xl font-black text-slate-200 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-truck-moving"></i>
+                    <span>سفرات الآليات والسواق</span>
+                </button>
+                <button id="tab-analytics" onclick="switchTab('analytics')" class="tab-btn px-5 py-2.5 rounded-xl font-black text-slate-200 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>تجهيز الأصناف</span>
+                </button>
+                <button id="tab-settings" onclick="switchTab('settings')" class="tab-btn px-5 py-2.5 rounded-xl font-black text-slate-200 hover:text-white transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-gears"></i>
+                    <span>لوحة التحكم والإعدادات</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 no-print">
+
+        <!-- Tab 1 & 2: Invoice Creation Form (North / South) -->
+        <div id="view-invoice-form" class="tab-content space-y-6">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-4">
+                        <div id="siteBadgeIcon" class="w-14 h-14 rounded-2xl bg-brand-100 text-brand-600 flex items-center justify-center text-2xl">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+                        <div>
+                            <h2 id="formSiteTitle" class="text-2xl font-black text-slate-900">تجهيز وصل خرسانة جديد</h2>
+                            <p class="text-sm font-bold text-slate-500">إدخال وحفظ تفاصيل الوصل وطباعته</p>
+                        </div>
+                    </div>
+                    <span id="formInvoiceNo" class="text-base font-black bg-slate-100 px-4 py-2 rounded-xl text-slate-800 border border-slate-200">رقم الوصل: جاري التوليد...</span>
+                </div>
+
+                <form id="invoiceForm" onsubmit="handleInvoiceSubmit(event)" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Customer Selection -->
+                        <div>
+                            <label class="block text-sm font-black text-slate-800 mb-1.5">اسم الزبون / المشروع <span class="text-red-500">*</span></label>
+                            <select id="invCustomer" required onchange="handleCustomerSelectChange(this)" class="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white font-black">
+                                <option value="">-- اختر الزبون --</option>
+                            </select>
+                        </div>
+
+                        <!-- Concrete Type -->
+                        <div>
+                            <label class="block text-sm font-black text-slate-800 mb-1.5">صنف الخرسانة (المزيج) <span class="text-red-500">*</span></label>
+                            <select id="invConcreteType" required onchange="calculateTodayAccumulated()" class="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white font-black">
+                                <option value="">-- اختر الصنف --</option>
+                            </select>
+                        </div>
+
+                        <!-- Driver Selection -->
+                        <div>
+                            <label class="block text-sm font-black text-slate-800 mb-1.5">السائق <span class="text-red-500">*</span></label>
+                            <select id="invDriver" required onchange="handleDriverSelectChange(this)" class="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-base bg-white font-black">
+                                <option value="">-- اختر السائق --</option>
+                            </select>
+                        </div>
+
+                        <!-- Vehicle Code -->
+                        <div>
+                            <label class="block text-sm font-black text-slate-800 mb-1.5">رمز الآلية / الخلاطة <span class="text-red-500">*</span></label>
+                            <input type="text" id="invVehicle" required class="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-base bg-slate-100 font-black text-slate-800" placeholder="مثال: MIX-01" readonly>
+                        </div>
+
+                        <!-- Supplied Quantity -->
+                        <div>
+                            <label class="block text-sm font-black text-slate-800 mb-1.5">الكمية المجهزة (م³) <span class="text-red-500">*</span></label>
+                            <input type="number" id="invQty" step="0.5" min="0.5" required oninput="calculateTodayAccumulated()" class="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-base font-black text-brand-600 bg-white" placeholder="0.0">
+                        </div>
+
+                        <!-- Today Accumulated Qty (Auto calculated by Customer + Concrete Type) -->
+                        <div>
+                            <label class="block text-sm font-black text-slate-800 mb-1.5">الكمية الكلية (م³)</label>
+                            <div class="relative">
+                                <input type="number" id="invTotalToday" readonly class="w-full p-3.5 border-2 border-slate-200 bg-slate-100 rounded-xl font-black text-slate-900 text-base" value="0">
+                                <span class="absolute left-3 top-3.5 text-xs font-bold text-slate-500">تلقائي</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div>
+                        <label class="block text-sm font-black text-slate-800 mb-1.5">ملاحظات إضافية / موقع التفريغ</label>
+                        <input type="text" id="invNotes" class="w-full p-3.5 border-2 border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-base font-bold" placeholder="أي ملاحظات تخص الشحنة...">
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="flex items-center justify-end gap-4 pt-4 border-t border-slate-100">
+                        <button type="reset" onclick="setTimeout(calculateTodayAccumulated, 50)" class="px-6 py-3 text-base font-black text-slate-700 hover:bg-slate-100 rounded-xl transition">تفريغ الحقول</button>
+                        <button type="submit" id="saveInvoiceBtn" class="px-8 py-3.5 bg-brand-600 hover:bg-brand-700 text-white font-black rounded-xl transition shadow-lg shadow-brand-600/30 flex items-center gap-2 text-base">
+                            <i class="fa-solid fa-print"></i>
+                            <span>حفظ وطباعة الوصل</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab 3: Customer Log & Invoice Management -->
+        <div id="view-log" class="tab-content hidden space-y-6">
+            <!-- Summary Stats Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-black text-slate-500">إجمالي الوصلات</p>
+                        <h3 id="statTotalInvoices" class="text-3xl font-black text-slate-900 mt-1">0</h3>
+                    </div>
+                    <div class="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-file-invoice"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-black text-slate-500">إجمالي الخرسانة (م³)</p>
+                        <h3 id="statTotalQty" class="text-3xl font-black text-brand-600 mt-1">0</h3>
+                    </div>
+                    <div class="w-14 h-14 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-cubes"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-black text-slate-500">الموقع الشمالي (م³)</p>
+                        <h3 id="statNorthQty" class="text-3xl font-black text-emerald-600 mt-1">0</h3>
+                    </div>
+                    <div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-compass-north"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-black text-slate-500">الموقع الجنوبي (م³)</p>
+                        <h3 id="statSouthQty" class="text-3xl font-black text-purple-600 mt-1">0</h3>
+                    </div>
+                    <div class="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-compass-south"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters Bar -->
+            <div class="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                    <input type="text" id="filterSearch" oninput="renderInvoicesTable()" placeholder="بحث باسم الزبون أو الوصل..." class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                    
+                    <select id="filterCustomer" onchange="renderInvoicesTable()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="">كل الزبائن</option>
+                    </select>
+
+                    <select id="filterConcrete" onchange="renderInvoicesTable()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="">كل الأصناف</option>
+                    </select>
+
+                    <select id="filterSite" onchange="renderInvoicesTable()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                        <option value="">كلا الموقعين</option>
+                        <option value="شمالي">الموقع الشمالي</option>
+                        <option value="جنوبي">الموقع الجنوبي</option>
+                    </select>
+
+                    <input type="date" id="filterDate" onchange="renderInvoicesTable()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                </div>
+
+                <div class="flex justify-between items-center pt-3 border-t border-slate-100">
+                    <button onclick="clearInvoiceFilters()" class="text-sm font-black text-slate-600 hover:text-brand-600">إعادة ضبط الفلاتر</button>
+                    <div class="flex items-center gap-3">
+                        <button onclick="printLogReport()" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-black flex items-center gap-2 shadow-md">
+                            <i class="fa-solid fa-print"></i>
+                            <span>طباعة السجل (A4)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-100 text-slate-800 uppercase font-black border-b-2 border-slate-200">
+                            <tr>
+                                <th class="p-4">رقم الوصل</th>
+                                <th class="p-4">التاريخ والوقت</th>
+                                <th class="p-4">الموقع</th>
+                                <th class="p-4">الزبون</th>
+                                <th class="p-4">صنف الخرسانة</th>
+                                <th class="p-4">السائق والآلية</th>
+                                <th class="p-4">الكمية المجهزة</th>
+                                <th class="p-4">الكمية الكلية</th>
+                                <th class="p-4 no-print">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invoicesTableBody" class="divide-y divide-slate-200 font-bold">
+                            <!-- Invoices populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Driver & Vehicle Trips Stats -->
+        <div id="view-trips" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 sm:p-8 rounded-2xl border-2 border-slate-200 shadow-sm space-y-6">
+                <!-- Header & Filters Bar -->
+                <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900">إحصائيات وسفرات السواق والآليات</h2>
+                        <p class="text-sm font-bold text-slate-500">حساب عدد النقليات والكميات المنقولة مع إمكانية البحث والفلترة حسب الفترة الزمنية</p>
+                    </div>
+
+                    <!-- Search and Date Filter Controls -->
+                    <div class="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                        <!-- Search Driver / Vehicle -->
+                        <div class="relative flex-1 sm:flex-none">
+                            <input type="text" id="tripSearchInput" oninput="renderTripsStats()" placeholder="بحث بالسائق أو الآلية..." class="w-full sm:w-52 p-3 pr-10 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                            <i class="fa-solid fa-search absolute right-3.5 top-3.5 text-slate-400 text-sm"></i>
+                        </div>
+
+                        <!-- Driver Select Filter -->
+                        <select id="tripDriverFilter" onchange="renderTripsStats()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                            <option value="">كل السواق</option>
+                        </select>
+
+                        <!-- Period Type Filter -->
+                        <select id="tripPeriodFilter" onchange="toggleTripDateInputs(); renderTripsStats();" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                            <option value="all">كل الأوقات</option>
+                            <option value="daily">يومي</option>
+                            <option value="monthly" selected>شهري</option>
+                            <option value="custom">نطاق مخصص</option>
+                        </select>
+
+                        <!-- Dynamic Date Inputs -->
+                        <div id="tripDateInputsContainer" class="flex items-center gap-2">
+                            <input type="month" id="tripsMonthFilter" onchange="renderTripsStats()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                        </div>
+
+                        <!-- Print Action Buttons -->
+                        <div class="flex items-center gap-2">
+                            <button onclick="printTripsReport('general')" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-black flex items-center gap-2 shadow-md" title="طباعة عامة لكل السواق">
+                                <i class="fa-solid fa-print"></i>
+                                <span>طباعة عام</span>
+                            </button>
+                            <button onclick="printTripsReport('custom')" class="px-4 py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-sm font-black flex items-center gap-2 shadow-md" title="طباعة مخصصة حسب الفلاتر">
+                                <i class="fa-solid fa-file-lines"></i>
+                                <span>طباعة مخصص</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="driversStatsCards">
+                    <!-- Cards populated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 5: Concrete Types Analytics -->
+        <div id="view-analytics" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 sm:p-8 rounded-2xl border-2 border-slate-200 shadow-sm">
+                <div class="mb-6 pb-4 border-b border-slate-100">
+                    <h2 class="text-2xl font-black text-slate-900">تحليل أصناف الخرسانة المجهزة</h2>
+                    <p class="text-sm font-bold text-slate-500">عرض إجمالي الكميات المجهزة حسب نوع وصنف المزيج</p>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="concreteStatsContainer">
+                    <!-- Concrete Types dynamic stats -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 6: Settings & Control Panel -->
+        <div id="view-settings" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Customers Management -->
+                <div class="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-black text-slate-900 text-base border-b pb-3 flex items-center justify-between">
+                        <span>إدارة الزبائن</span>
+                        <i class="fa-solid fa-users text-brand-600"></i>
+                    </h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="newCustomerName" placeholder="اسم الزبون الجديد..." class="flex-1 p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none">
+                        <button onclick="addCustomer()" class="px-5 py-3 bg-brand-600 text-white rounded-xl text-sm font-black hover:bg-brand-700">إضافة</button>
+                    </div>
+                    <ul id="customersList" class="divide-y divide-slate-200 text-sm font-bold max-h-64 overflow-y-auto">
+                        <!-- Dynamic list -->
+                    </ul>
+                </div>
+
+                <!-- Concrete Types Management -->
+                <div class="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-black text-slate-900 text-base border-b pb-3 flex items-center justify-between">
+                        <span>إدارة أصناف الخرسانة</span>
+                        <i class="fa-solid fa-flask text-brand-600"></i>
+                    </h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="newConcreteName" placeholder="رمز الصنف (مثل C30)..." class="flex-1 p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none">
+                        <button onclick="addConcreteType()" class="px-5 py-3 bg-brand-600 text-white rounded-xl text-sm font-black hover:bg-brand-700">إضافة</button>
+                    </div>
+                    <ul id="concreteList" class="divide-y divide-slate-200 text-sm font-bold max-h-64 overflow-y-auto">
+                        <!-- Dynamic list -->
+                    </ul>
+                </div>
+
+                <!-- Drivers Management -->
+                <div class="bg-white p-6 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-black text-slate-900 text-base border-b pb-3 flex items-center justify-between">
+                        <span>إدارة السواق والآليات</span>
+                        <i class="fa-solid fa-id-card text-brand-600"></i>
+                    </h3>
+                    <div class="space-y-3">
+                        <input type="text" id="newDriverName" placeholder="اسم السائق..." class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none">
+                        <div class="flex gap-2">
+                            <input type="text" id="newDriverVehicle" placeholder="رمز الآلية..." class="flex-1 p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none">
+                            <button onclick="addDriver()" class="px-5 py-3 bg-brand-600 text-white rounded-xl text-sm font-black hover:bg-brand-700">إضافة</button>
+                        </div>
+                    </div>
+                    <ul id="driversList" class="divide-y divide-slate-200 text-sm font-bold max-h-64 overflow-y-auto">
+                        <!-- Dynamic list -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Admin Passcode Update Security Panel (Hidden for Non-Admins) -->
+            <div id="adminSecurityPanel" class="bg-white p-6 sm:p-8 rounded-2xl border-2 border-slate-200 shadow-sm space-y-4">
+                <h3 class="font-black text-slate-900 text-lg border-b pb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-amber-500"></i>
+                    <span>تعديل رموز الدخول السري (خاص بالمدير فقط)</span>
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-black text-slate-800 mb-1.5">رمز مدير النظام</label>
+                        <input type="password" id="passAdmin" class="w-full p-3.5 border-2 border-slate-300 rounded-xl text-base font-black">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black text-slate-800 mb-1.5">رمز الموقع الشمالي</label>
+                        <input type="password" id="passNorth" class="w-full p-3.5 border-2 border-slate-300 rounded-xl text-base font-black">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black text-slate-800 mb-1.5">رمز الموقع الجنوبي</label>
+                        <input type="password" id="passSouth" class="w-full p-3.5 border-2 border-slate-300 rounded-xl text-base font-black">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black text-slate-800 mb-1.5">رمز المشاهد</label>
+                        <input type="password" id="passViewer" class="w-full p-3.5 border-2 border-slate-300 rounded-xl text-base font-black">
+                    </div>
+                </div>
+                <button onclick="updatePasscodes()" class="px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-xl text-base shadow-md">حفظ الرموز الجديدة</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Thermal Print Container (Hidden on Screen, Visible on Print) -->
+    <div id="thermalPrintArea" class="print-only"></div>
+
+    <!-- A4 Report Print Container -->
+    <div id="a4PrintArea" class="print-only"></div>
+
+    <!-- Firebase SDK Setup (ESM) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            setDoc, 
+            addDoc, 
+            deleteDoc, 
+            onSnapshot 
+        } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDiEgcUGZMInaXCn7_QNr_vdwJFWvl8DQc",
+            authDomain: "ameer-79295.firebaseapp.com",
+            projectId: "ameer-79295",
+            storageBucket: "ameer-79295.firebasestorage.app",
+            messagingSenderId: "1094305670943",
+            appId: "1:1094305670943:web:f3b9b38114cfd33378722a",
+            measurementId: "G-GNLK0FMS40"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.state = {
+            currentUserRole: null,
+            activeSite: 'شمالي',
+            passcodes: {
+                admin: '1111',
+                north: '2222',
+                south: '3333',
+                viewer: '4444'
+            },
+            customers: [],
+            concreteTypes: [],
+            drivers: [],
+            invoices: []
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initDatabaseListeners();
+            document.getElementById('tripsMonthFilter').value = new Date().toISOString().slice(0, 7);
+        });
+
+        function updateDBStatus(online) {
+            const dot = document.getElementById('dbStatusDot');
+            const text = document.getElementById('dbStatusText');
+            if (online) {
+                dot.className = 'w-3 h-3 rounded-full bg-emerald-500';
+                text.innerText = 'Firestore متصل حي';
+            } else {
+                dot.className = 'w-3 h-3 rounded-full bg-amber-400 animate-pulse';
+                text.innerText = 'جاري المزامنة...';
+            }
+        }
+
+        function initDatabaseListeners() {
+            onSnapshot(doc(db, "settings", "passcodes"), (docSnap) => {
+                if (docSnap.exists()) {
+                    window.state.passcodes = docSnap.data();
+                } else {
+                    setDoc(doc(db, "settings", "passcodes"), window.state.passcodes);
+                }
+                updatePasscodeInputsUI();
+            });
+
+            onSnapshot(collection(db, "customers"), (snapshot) => {
+                window.state.customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (window.state.customers.length === 0) seedDefaultCustomers();
+                renderDropdowns();
+                renderCustomersList();
+            });
+
+            onSnapshot(collection(db, "concreteTypes"), (snapshot) => {
+                window.state.concreteTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (window.state.concreteTypes.length === 0) seedDefaultConcrete();
+                renderDropdowns();
+                renderConcreteList();
+                renderConcreteStats();
+            });
+
+            onSnapshot(collection(db, "drivers"), (snapshot) => {
+                window.state.drivers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (window.state.drivers.length === 0) seedDefaultDrivers();
+                renderDropdowns();
+                renderDriversList();
+                renderTripsStats();
+            });
+
+            onSnapshot(collection(db, "invoices"), (snapshot) => {
+                window.state.invoices = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateDBStatus(true);
+                renderInvoicesTable();
+                renderTripsStats();
+                renderConcreteStats();
+                updateFormInvoiceNo();
+                calculateTodayAccumulated();
+            });
+        }
+
+        async function seedDefaultCustomers() {
+            const defaults = ["شركة البناء الحديث", "مشروع الجسر السريع", "مقاولات الأمل", "الزبون العام"];
+            for (let name of defaults) {
+                await addDoc(collection(db, "customers"), { name, createdAt: new Date().toISOString() });
+            }
+        }
+
+        async function seedDefaultConcrete() {
+            const defaults = ["C20", "C25", "C30", "C35 (مقاوم)", "C40"];
+            for (let name of defaults) {
+                await addDoc(collection(db, "concreteTypes"), { name, createdAt: new Date().toISOString() });
+            }
+        }
+
+        async function seedDefaultDrivers() {
+            const defaults = [
+                { name: "أحمد علي", vehicleCode: "MIX-01" },
+                { name: "حسين كاظم", vehicleCode: "MIX-02" },
+                { name: "محمد جاسم", vehicleCode: "MIX-03" }
+            ];
+            for (let driver of defaults) {
+                await addDoc(collection(db, "drivers"), { ...driver, createdAt: new Date().toISOString() });
+            }
+        }
+
+        window.saveInvoiceToFirestore = async function(invoiceData) {
+            try {
+                await addDoc(collection(db, "invoices"), invoiceData);
+                showToast("تم حفظ الوصل وتحديث البيانات بنجاح", "success");
+            } catch (err) {
+                console.error("Error saving invoice: ", err);
+                showToast("حدث خطأ أثناء حفظ الوصل في Firebase", "error");
+            }
+        }
+
+        window.deleteInvoiceFromFirestore = async function(id) {
+            if (window.state.currentUserRole !== 'admin') {
+                showToast("صلاحية الحذف متاحة لمدير النظام فقط", "error");
+                return;
+            }
+            if (confirm("هل أنت تأكد من رغبتك في حذف هذا الوصل نهائياً؟")) {
+                try {
+                    await deleteDoc(doc(db, "invoices", id));
+                    showToast("تم حذف الوصل بنجاح", "success");
+                } catch (err) {
+                    showToast("خطأ أثناء الحذف", "error");
+                }
+            }
+        }
+
+        window.addCustomer = async function() {
+            const input = document.getElementById('newCustomerName');
+            const name = input.value.trim();
+            if (!name) return;
+            await addDoc(collection(db, "customers"), { name, createdAt: new Date().toISOString() });
+            input.value = '';
+            showToast("تمت إضافة الزبون بنجاح");
+        }
+
+        window.deleteCustomer = async function(id) {
+            if (window.state.currentUserRole === 'viewer') {
+                showToast("ليس لديك صلاحية الحذف", "error");
+                return;
+            }
+            if (confirm("حذف هذا الزبون؟")) {
+                await deleteDoc(doc(db, "customers", id));
+                showToast("تم حذف الزبون بنجاح", "success");
+            }
+        }
+
+        window.addConcreteType = async function() {
+            const input = document.getElementById('newConcreteName');
+            const name = input.value.trim();
+            if (!name) return;
+            await addDoc(collection(db, "concreteTypes"), { name, createdAt: new Date().toISOString() });
+            input.value = '';
+            showToast("تمت إضافة الصنف بنجاح");
+        }
+
+        window.deleteConcreteType = async function(id) {
+            if (window.state.currentUserRole === 'viewer') {
+                showToast("ليس لديك صلاحية الحذف", "error");
+                return;
+            }
+            if (confirm("حذف هذا الصنف؟")) {
+                await deleteDoc(doc(db, "concreteTypes", id));
+                showToast("تم حذف الصنف بنجاح", "success");
+            }
+        }
+
+        window.addDriver = async function() {
+            const nameInput = document.getElementById('newDriverName');
+            const vehInput = document.getElementById('newDriverVehicle');
+            const name = nameInput.value.trim();
+            const vehicleCode = vehInput.value.trim();
+            if (!name || !vehicleCode) {
+                showToast("يرجى إدخال اسم السائق ورمز الآلية", "error");
+                return;
+            }
+            await addDoc(collection(db, "drivers"), { name, vehicleCode, createdAt: new Date().toISOString() });
+            nameInput.value = '';
+            vehInput.value = '';
+            showToast("تمت إضافة السائق والآلية");
+        }
+
+        window.deleteDriver = async function(id) {
+            if (window.state.currentUserRole === 'viewer') {
+                showToast("ليس لديك صلاحية الحذف", "error");
+                return;
+            }
+            if (confirm("حذف هذا السائق؟")) {
+                await deleteDoc(doc(db, "drivers", id));
+                showToast("تم حذف السائق بنجاح", "success");
+            }
+        }
+
+        window.updatePasscodes = async function() {
+            if (window.state.currentUserRole !== 'admin') {
+                showToast("تعديل الرموز متاح لمدير النظام فقط", "error");
+                return;
+            }
+            const passAdmin = document.getElementById('passAdmin').value;
+            const passNorth = document.getElementById('passNorth').value;
+            const passSouth = document.getElementById('passSouth').value;
+            const passViewer = document.getElementById('passViewer').value;
+
+            const newPasses = { admin: passAdmin, north: passNorth, south: passSouth, viewer: passViewer };
+            await setDoc(doc(db, "settings", "passcodes"), newPasses);
+            showToast("تم تحديث رموز الدخول السرية بنجاح");
+        }
+    </script>
+
+    <!-- Vanilla UI & App Script -->
+    <script>
+        function handleLogin() {
+            const code = document.getElementById('passcodeInput').value.trim();
+            const passes = window.state.passcodes;
+
+            if (code === passes.admin) {
+                setRole('admin', 'مدير النظام السامي');
+            } else if (code === passes.north) {
+                setRole('north', 'مسؤول الموقع الشمالي');
+            } else if (code === passes.south) {
+                setRole('south', 'مسؤول الموقع الجنوبي');
+            } else if (code === passes.viewer) {
+                setRole('viewer', 'مراقب / مشاهد');
+            } else {
+                showToast("رمز الدخول غير صحيح، حاول مجدداً", "error");
+                return;
+            }
+
+            document.getElementById('authModal').classList.add('hidden');
+            document.getElementById('passcodeInput').value = '';
+        }
+
+        function setRole(role, roleName) {
+            window.state.currentUserRole = role;
+            document.getElementById('activeUserRole').innerText = roleName;
+            document.getElementById('activeUserName').innerText = role.toUpperCase();
+
+            const tabNorth = document.getElementById('tab-north');
+            const tabSouth = document.getElementById('tab-south');
+            const tabSettings = document.getElementById('tab-settings');
+            const adminSecurityPanel = document.getElementById('adminSecurityPanel');
+            const filterSite = document.getElementById('filterSite');
+
+            if (role === 'north') {
+                if (tabNorth) tabNorth.style.display = 'flex';
+                if (tabSouth) tabSouth.style.display = 'none';
+                if (tabSettings) tabSettings.style.display = 'flex';
+                if (adminSecurityPanel) adminSecurityPanel.style.display = 'none';
+                if (filterSite) filterSite.parentElement.classList.add('hidden');
+                switchTab('north');
+            } else if (role === 'south') {
+                if (tabNorth) tabNorth.style.display = 'none';
+                if (tabSouth) tabSouth.style.display = 'flex';
+                if (tabSettings) tabSettings.style.display = 'flex';
+                if (adminSecurityPanel) adminSecurityPanel.style.display = 'none';
+                if (filterSite) filterSite.parentElement.classList.add('hidden');
+                switchTab('south');
+            } else if (role === 'admin') {
+                if (tabNorth) tabNorth.style.display = 'flex';
+                if (tabSouth) tabSouth.style.display = 'flex';
+                if (tabSettings) tabSettings.style.display = 'flex';
+                if (adminSecurityPanel) adminSecurityPanel.style.display = 'block';
+                if (filterSite) filterSite.parentElement.classList.remove('hidden');
+                switchTab('north');
+            } else { // viewer
+                if (tabNorth) tabNorth.style.display = 'none';
+                if (tabSouth) tabSouth.style.display = 'none';
+                if (tabSettings) tabSettings.style.display = 'none';
+                if (adminSecurityPanel) adminSecurityPanel.style.display = 'none';
+                if (filterSite) filterSite.parentElement.classList.remove('hidden');
+                switchTab('log');
+            }
+        }
+
+        function handleLogout() {
+            window.state.currentUserRole = null;
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+
+        function switchTab(tabId) {
+            if (window.state.currentUserRole === 'north' && tabId === 'south') return;
+            if (window.state.currentUserRole === 'south' && tabId === 'north') return;
+
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(view => view.classList.add('hidden'));
+
+            if (tabId === 'north' || tabId === 'south') {
+                window.state.activeSite = tabId === 'north' ? 'شمالي' : 'جنوبي';
+                document.getElementById('view-invoice-form').classList.remove('hidden');
+                document.getElementById(`tab-${tabId}`).classList.add('active');
+
+                const title = document.getElementById('formSiteTitle');
+                const badge = document.getElementById('siteBadgeIcon');
+                if (tabId === 'north') {
+                    title.innerText = 'تجهيز خرسانة - الموقع الشمالي';
+                    badge.className = 'w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl';
+                    badge.innerHTML = '<i class="fa-solid fa-compass-north"></i>';
+                } else {
+                    title.innerText = 'تجهيز خرسانة - الموقع الجنوبي';
+                    badge.className = 'w-14 h-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-2xl';
+                    badge.innerHTML = '<i class="fa-solid fa-compass-south"></i>';
+                }
+                updateFormInvoiceNo();
+                calculateTodayAccumulated();
+            } else {
+                document.getElementById(`view-${tabId}`).classList.remove('hidden');
+                document.getElementById(`tab-${tabId}`).classList.add('active');
+            }
+        }
+
+        function updateFormInvoiceNo() {
+            const nextNo = (window.state.invoices.length || 0) + 1001;
+            const prefix = window.state.activeSite === 'شمالي' ? 'N' : 'S';
+            document.getElementById('formInvoiceNo').innerText = `رقم الوصل: ${prefix}-${nextNo}`;
+        }
+
+        function renderDropdowns() {
+            const custSelect = document.getElementById('invCustomer');
+            const filterCust = document.getElementById('filterCustomer');
+            const currentCust = custSelect.value;
+
+            custSelect.innerHTML = '<option value="">-- اختر الزبون --</option><option value="__ADD_NEW__" class="font-black text-brand-600">+ إضافة زبون جديد...</option>';
+            filterCust.innerHTML = '<option value="">كل الزبائن</option>';
+
+            window.state.customers.forEach(c => {
+                custSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                filterCust.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+            custSelect.value = currentCust;
+
+            const concSelect = document.getElementById('invConcreteType');
+            const filterConc = document.getElementById('filterConcrete');
+            const currentConc = concSelect.value;
+
+            concSelect.innerHTML = '<option value="">-- اختر الصنف --</option>';
+            filterConc.innerHTML = '<option value="">كل الأصناف</option>';
+
+            window.state.concreteTypes.forEach(c => {
+                concSelect.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+                filterConc.innerHTML += `<option value="${c.name}">${c.name}</option>`;
+            });
+            concSelect.value = currentConc;
+
+            const driverSelect = document.getElementById('invDriver');
+            const tripDriverFilter = document.getElementById('tripDriverFilter');
+            const currentDriver = driverSelect.value;
+            const currentFilterDriver = tripDriverFilter.value;
+
+            driverSelect.innerHTML = '<option value="">-- اختر السائق --</option><option value="__ADD_NEW__" class="font-black text-brand-600">+ إضافة سائق وآلية جديدة...</option>';
+            tripDriverFilter.innerHTML = '<option value="">كل السواق</option>';
+
+            window.state.drivers.forEach(d => {
+                driverSelect.innerHTML += `<option value="${d.name}" data-vehicle="${d.vehicleCode}">${d.name} (${d.vehicleCode})</option>`;
+                tripDriverFilter.innerHTML += `<option value="${d.name}">${d.name} (${d.vehicleCode})</option>`;
+            });
+            driverSelect.value = currentDriver;
+            tripDriverFilter.value = currentFilterDriver;
+        }
+
+        function handleCustomerSelectChange(selectEl) {
+            if (selectEl.value === '__ADD_NEW__') {
+                selectEl.value = '';
+                document.getElementById('quickCustomerModal').classList.remove('hidden');
+                document.getElementById('quickCustNameInput').focus();
+            } else {
+                calculateTodayAccumulated();
+            }
+        }
+
+        function closeQuickCustomerModal() {
+            document.getElementById('quickCustomerModal').classList.add('hidden');
+            document.getElementById('quickCustNameInput').value = '';
+        }
+
+        async function saveQuickCustomer() {
+            const input = document.getElementById('quickCustNameInput');
+            const name = input.value.trim();
+            if (!name) {
+                showToast("يرجى إدخال اسم الزبون", "error");
+                return;
+            }
+            try {
+                await addDoc(collection(window.db, "customers"), { name, createdAt: new Date().toISOString() });
+                showToast("تمت إضافة الزبون بنجاح", "success");
+                closeQuickCustomerModal();
+                setTimeout(() => {
+                    const custSelect = document.getElementById('invCustomer');
+                    custSelect.value = name;
+                    calculateTodayAccumulated();
+                }, 300);
+            } catch (err) {
+                showToast("خطأ أثناء إضافة الزبون", "error");
+            }
+        }
+
+        function handleDriverSelectChange(selectEl) {
+            if (selectEl.value === '__ADD_NEW__') {
+                selectEl.value = '';
+                document.getElementById('quickDriverModal').classList.remove('hidden');
+                document.getElementById('quickDriverNameInput').focus();
+            } else {
+                autoFillVehicle();
+            }
+        }
+
+        function closeQuickDriverModal() {
+            document.getElementById('quickDriverModal').classList.add('hidden');
+            document.getElementById('quickDriverNameInput').value = '';
+            document.getElementById('quickVehicleInput').value = '';
+        }
+
+        async function saveQuickDriver() {
+            const nameInput = document.getElementById('quickDriverNameInput');
+            const vehInput = document.getElementById('quickVehicleInput');
+            const name = nameInput.value.trim();
+            const vehicleCode = vehInput.value.trim();
+
+            if (!name || !vehicleCode) {
+                showToast("يرجى إدخال اسم السائق ورمز الآلية", "error");
+                return;
+            }
+            try {
+                await addDoc(collection(window.db, "drivers"), { name, vehicleCode, createdAt: new Date().toISOString() });
+                showToast("تمت إضافة السائق والآلية بنجاح", "success");
+                closeQuickDriverModal();
+                setTimeout(() => {
+                    const driverSelect = document.getElementById('invDriver');
+                    driverSelect.value = name;
+                    autoFillVehicle();
+                }, 300);
+            } catch (err) {
+                showToast("خطأ أثناء الإضافة", "error");
+            }
+        }
+
+        function autoFillVehicle() {
+            const driverSelect = document.getElementById('invDriver');
+            const selectedOpt = driverSelect.options[driverSelect.selectedIndex];
+            const vehicleInput = document.getElementById('invVehicle');
+
+            if (selectedOpt && selectedOpt.dataset.vehicle) {
+                vehicleInput.value = selectedOpt.dataset.vehicle;
+            } else {
+                vehicleInput.value = '';
+            }
+        }
+
+        function calculateTodayAccumulated() {
+            const customer = document.getElementById('invCustomer').value;
+            const concreteType = document.getElementById('invConcreteType').value;
+            const qtyInput = parseFloat(document.getElementById('invQty').value) || 0;
+            const totalInput = document.getElementById('invTotalToday');
+
+            if (!customer || !concreteType) {
+                totalInput.value = qtyInput.toFixed(1);
+                return;
+            }
+
+            const todayISO = new Date().toISOString().slice(0, 10);
+            
+            const pastTodayQty = window.state.invoices
+                .filter(inv => inv.customer === customer && inv.concreteType === concreteType && inv.dateISO === todayISO)
+                .reduce((sum, inv) => sum + (parseFloat(inv.suppliedQty) || 0), 0);
+
+            totalInput.value = (pastTodayQty + qtyInput).toFixed(1);
+        }
+
+        async function handleInvoiceSubmit(e) {
+            e.preventDefault();
+
+            if (window.state.currentUserRole === 'viewer') {
+                showToast("حساب المشاهد لا يملك صلاحية إضافة وصل جديد", "error");
+                return;
+            }
+
+            const customer = document.getElementById('invCustomer').value;
+            const concreteType = document.getElementById('invConcreteType').value;
+            const driver = document.getElementById('invDriver').value;
+            const vehicle = document.getElementById('invVehicle').value;
+            const suppliedQty = parseFloat(document.getElementById('invQty').value);
+            const totalTodayQty = parseFloat(document.getElementById('invTotalToday').value);
+            const notes = document.getElementById('invNotes').value;
+
+            const now = new Date();
+            const dateISO = now.toISOString().slice(0, 10);
+            const datetimeStr = now.toLocaleDateString('ar-IQ') + ' ' + now.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+
+            const nextNo = (window.state.invoices.length || 0) + 1001;
+            const prefix = window.state.activeSite === 'شمالي' ? 'N' : 'S';
+            const invoiceNo = `${prefix}-${nextNo}`;
+
+            const invoicePayload = {
+                invoiceNo,
+                site: window.state.activeSite,
+                customer,
+                concreteType,
+                driver,
+                vehicle,
+                suppliedQty,
+                totalTodayQty,
+                notes,
+                dateISO,
+                datetime: datetimeStr,
+                createdAt: now.toISOString(),
+                createdBy: window.state.currentUserRole
+            };
+
+            await window.saveInvoiceToFirestore(invoicePayload);
+            printThermalReceipt(invoicePayload);
+
+            document.getElementById('invoiceForm').reset();
+            document.getElementById('invTotalToday').value = '0';
+        }
+
+        function printThermalReceipt(inv) {
+            const printArea = document.getElementById('thermalPrintArea');
+            
+            const receiptHTML = (copyTitle) => `
+                <div class="thermal-receipt">
+                    <div style="text-align: center; border-bottom: 1px solid #000; padding-bottom: 5px; margin-bottom: 5px;">
+                        <h2 style="font-size: 15px; font-weight: 900; margin:0;">معامل القالب للكونكريت</h2>
+                        <p style="font-size: 11px; font-weight: 700; margin:2px 0;">الموقع ${inv.site} | هاتف: 0780150488</p>
+                        <span style="font-size: 10px; font-weight: 900; border: 1px solid #000; padding: 1px 4px;">${copyTitle}</span>
+                    </div>
+
+                    <table style="font-size: 11px; font-weight: 700; margin-bottom: 5px;">
+                        <tr><td>رقم الوصل:</td><td style="font-weight:900;">${inv.invoiceNo}</td></tr>
+                        <tr><td>التاريخ والوقت:</td><td>${inv.datetime}</td></tr>
+                        <tr><td>الزبون:</td><td style="font-weight:900;">${inv.customer}</td></tr>
+                        <tr><td>صنف الخرسانة:</td><td style="font-weight:900;">${inv.concreteType}</td></tr>
+                        <tr><td>السائق والآلية:</td><td>${inv.driver} (${inv.vehicle})</td></tr>
+                        <tr><td>الكمية المجهزة:</td><td style="font-weight:900; font-size: 13px;">${inv.suppliedQty} م³</td></tr>
+                        <tr><td>الكمية الكلية:</td><td style="font-weight:900;">${inv.totalTodayQty} م³</td></tr>
+                        ${inv.notes ? `<tr><td>ملاحظات:</td><td>${inv.notes}</td></tr>` : ''}
+                    </table>
+
+                    <div style="border-top: 1px dashed #000; pt-2; text-align: center; font-size: 10px; font-weight: 700; margin-top: 8px;">
+                        <p>شكراً لتعاملكم معنا</p>
+                        <p>التوقيع / المستلم: ....................</p>
+                    </div>
+                </div>
+            `;
+
+            printArea.innerHTML = receiptHTML("نسخة الزبون") + receiptHTML("نسخة المعمل");
+            window.print();
+        }
+
+        function getFilteredInvoices() {
+            const search = document.getElementById('filterSearch').value.toLowerCase();
+            const custFilter = document.getElementById('filterCustomer').value;
+            const concFilter = document.getElementById('filterConcrete').value;
+            const siteFilter = document.getElementById('filterSite').value;
+            const dateFilter = document.getElementById('filterDate').value;
+            const role = window.state.currentUserRole;
+
+            let filtered = window.state.invoices.filter(inv => {
+                if (role === 'north' && inv.site !== 'شمالي') return false;
+                if (role === 'south' && inv.site !== 'جنوبي') return false;
+
+                const matchSearch = (inv.customer || '').toLowerCase().includes(search) || (inv.invoiceNo || '').toLowerCase().includes(search);
+                const matchCust = !custFilter || inv.customer === custFilter;
+                const matchConc = !concFilter || inv.concreteType === concFilter;
+                const matchSite = !siteFilter || inv.site === siteFilter;
+                const matchDate = !dateFilter || inv.dateISO === dateFilter;
+                return matchSearch && matchCust && matchConc && matchSite && matchDate;
+            });
+
+            filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            return filtered;
+        }
+
+        function renderInvoicesTable() {
+            const tbody = document.getElementById('invoicesTableBody');
+            if (!tbody) return;
+
+            const filtered = getFilteredInvoices();
+
+            let totalQty = 0, northQty = 0, southQty = 0;
+            filtered.forEach(i => {
+                const q = parseFloat(i.suppliedQty) || 0;
+                totalQty += q;
+                if (i.site === 'شمالي') northQty += q;
+                if (i.site === 'جنوبي') southQty += q;
+            });
+
+            document.getElementById('statTotalInvoices').innerText = filtered.length;
+            document.getElementById('statTotalQty').innerText = totalQty.toFixed(1);
+            document.getElementById('statNorthQty').innerText = northQty.toFixed(1);
+            document.getElementById('statSouthQty').innerText = southQty.toFixed(1);
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-400 font-bold">لا توجد وصلات مطابقة للفلاتر الحالية</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(inv => `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-200">
+                    <td class="p-4 font-black text-slate-900">${inv.invoiceNo}</td>
+                    <td class="p-4 text-slate-600 font-bold">${inv.datetime}</td>
+                    <td class="p-4">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-black ${inv.site === 'شمالي' ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'}">
+                            ${inv.site}
+                        </span>
+                    </td>
+                    <td class="p-4 font-black text-slate-900">${inv.customer}</td>
+                    <td class="p-4"><span class="bg-slate-100 px-2.5 py-1 rounded-lg text-slate-800 font-black">${inv.concreteType}</span></td>
+                    <td class="p-4 text-slate-700 font-bold">${inv.driver} <span class="text-slate-500 font-bold">(${inv.vehicle})</span></td>
+                    <td class="p-4 font-black text-brand-600 text-base">${inv.suppliedQty} م³</td>
+                    <td class="p-4 font-black text-slate-900 text-base">${inv.totalTodayQty} م³</td>
+                    <td class="p-4 no-print">
+                        <div class="flex items-center gap-2">
+                            <button onclick='printThermalReceipt(${JSON.stringify(inv)})' class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl" title="طباعة">
+                                <i class="fa-solid fa-print"></i>
+                            </button>
+                            ${window.state.currentUserRole === 'admin' ? `
+                            <button onclick="deleteInvoiceFromFirestore('${inv.id}')" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl" title="حذف">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function printLogReport() {
+            const filtered = getFilteredInvoices();
+            const a4Area = document.getElementById('a4PrintArea');
+            let totalQty = filtered.reduce((sum, inv) => sum + (parseFloat(inv.suppliedQty) || 0), 0);
+
+            a4Area.innerHTML = `
+                <div class="a4-print-container">
+                    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
+                        <h2 style="font-size: 20px; font-weight: 900; margin: 0;">معامل القالب للكونكريت - سجل التجهيز الرسمي</h2>
+                        <p style="font-size: 12px; font-weight: 700; margin: 5px 0;">تاريخ التقرير: ${new Date().toLocaleDateString('ar-IQ')} | إجمالي الكمية: ${totalQty.toFixed(1)} م³ | عدد الوصلات: ${filtered.length}</p>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">
+                                <th>رقم الوصل</th>
+                                <th>التاريخ والوقت</th>
+                                <th>الموقع</th>
+                                <th>الزبون</th>
+                                <th>الصنف</th>
+                                <th>السائق والآلية</th>
+                                <th>الكمية المجهزة (م³)</th>
+                                <th>الكمية الكلية (م³)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${filtered.map(inv => `
+                                <tr>
+                                    <td><b>${inv.invoiceNo}</b></td>
+                                    <td>${inv.datetime}</td>
+                                    <td>${inv.site}</td>
+                                    <td><b>${inv.customer}</b></td>
+                                    <td>${inv.concreteType}</td>
+                                    <td>${inv.driver} (${inv.vehicle})</td>
+                                    <td><b>${inv.suppliedQty}</b></td>
+                                    <td><b>${inv.totalTodayQty}</b></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 30px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 700;">
+                        <div>توقيع المسؤول: ........................................</div>
+                        <div>ختم المعمل / الإدارة: ........................................</div>
+                    </div>
+                </div>
+            `;
+            window.print();
+        }
+
+        // Print Trips Reports (General & Custom)
+        function printTripsReport(type) {
+            const a4Area = document.getElementById('a4PrintArea');
+            const role = window.state.currentUserRole;
+            const searchQuery = (document.getElementById('tripSearchInput').value || '').toLowerCase();
+            const selectedDriverFilter = document.getElementById('tripDriverFilter').value;
+            const period = document.getElementById('tripPeriodFilter').value;
+
+            let matchDateCondition = (dateISO) => {
+                if (!dateISO) return false;
+                if (period === 'all') return true;
+                if (period === 'daily') {
+                    const dInput = document.getElementById('tripsDateFilter');
+                    return dInput && dateISO === dInput.value;
+                }
+                if (period === 'monthly') {
+                    const mInput = document.getElementById('tripsMonthFilter');
+                    return mInput && dateISO.startsWith(mInput.value);
+                }
+                if (period === 'custom') {
+                    const startInput = document.getElementById('tripsStartDate');
+                    const endInput = document.getElementById('tripsEndDate');
+                    const sDate = startInput ? startInput.value : '';
+                    const eDate = endInput ? endInput.value : '';
+                    if (!sDate || !eDate) return true;
+                    return dateISO >= sDate && dateISO <= eDate;
+                }
+                return true;
+            };
+
+            let targetDrivers = window.state.drivers.filter(driver => {
+                if (type === 'custom') {
+                    const matchName = driver.name.toLowerCase().includes(searchQuery) || (driver.vehicleCode || '').toLowerCase().includes(searchQuery);
+                    const matchDropdown = !selectedDriverFilter || driver.name === selectedDriverFilter;
+                    return matchName && matchDropdown;
+                }
+                return true; // General prints all drivers
+            });
+
+            let reportTitle = type === 'general' ? 'التقرير العام لسفرات ونقليات السواق والآليات' : 'التقرير المخصص لسفرات ونقليات السواق والآليات (حسب الفلاتر)';
+            let grandTotalTrips = 0;
+            let grandTotalMeters = 0;
+
+            let driversSummaryHTML = targetDrivers.map(driver => {
+                const driverInvoices = window.state.invoices.filter(inv => {
+                    if (role === 'north' && inv.site !== 'شمالي') return false;
+                    if (role === 'south' && inv.site !== 'جنوبي') return false;
+                    return inv.driver === driver.name && (type === 'general' || matchDateCondition(inv.dateISO));
+                });
+
+                const tripCount = driverInvoices.length;
+                const totalMeters = driverInvoices.reduce((sum, inv) => sum + (parseFloat(inv.suppliedQty) || 0), 0);
+                grandTotalTrips += tripCount;
+                grandTotalMeters += totalMeters;
+
+                return `
+                    <div style="margin-bottom: 20px; page-break-inside: avoid;">
+                        <h3 style="background-color: #f1f5f9; padding: 6px; font-size: 14px; font-weight: 900; border: 1px solid #333; margin: 0 0 5px 0;">
+                            السائق: ${driver.name} | الآلية: ${driver.vehicleCode} | إجمالي السفرات: ${tripCount} | الكمية المنقولة: ${totalMeters.toFixed(1)} م³
+                        </h3>
+                        <table>
+                            <thead>
+                                <tr style="background-color: #f8fafc;">
+                                    <th>رقم الوصل</th>
+                                    <th>التاريخ والوقت</th>
+                                    <th>الموقع</th>
+                                    <th>الزبون</th>
+                                    <th>الصنف</th>
+                                    <th>الكمية (م³)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${driverInvoices.length === 0 ? `<tr><td colspan="6" style="text-align:center; color:#666;">لا توجد سفرات مسجلة</td></tr>` :
+                                    driverInvoices.map(inv => `
+                                        <tr>
+                                            <td><b>${inv.invoiceNo}</b></td>
+                                            <td>${inv.datetime}</td>
+                                            <td>${inv.site}</td>
+                                            <td><b>${inv.customer}</b></td>
+                                            <td>${inv.concreteType}</td>
+                                            <td><b>${inv.suppliedQty}</b></td>
+                                        </tr>
+                                    `).join('')
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }).join('');
+
+            a4Area.innerHTML = `
+                <div class="a4-print-container">
+                    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
+                        <h2 style="font-size: 20px; font-weight: 900; margin: 0;">معامل القالب للكونكريت - ${reportTitle}</h2>
+                        <p style="font-size: 12px; font-weight: 700; margin: 5px 0;">تاريخ الإصدار: ${new Date().toLocaleDateString('ar-IQ')} | إجمالي السفرات: ${grandTotalTrips} | إجمالي الكمية المنقولة: ${grandTotalMeters.toFixed(1)} م³</p>
+                    </div>
+
+                    ${driversSummaryHTML}
+
+                    <div style="margin-top: 30px; display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; page-break-inside: avoid;">
+                        <div>توقيع مسؤول الحركة / الآليات: ........................................</div>
+                        <div>ختم المعمل / الإدارة: ........................................</div>
+                    </div>
+                </div>
+            `;
+
+            window.print();
+        }
+
+        function clearInvoiceFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterCustomer').value = '';
+            document.getElementById('filterConcrete').value = '';
+            document.getElementById('filterSite').value = '';
+            document.getElementById('filterDate').value = '';
+            renderInvoicesTable();
+        }
+
+        function toggleTripDateInputs() {
+            const period = document.getElementById('tripPeriodFilter').value;
+            const container = document.getElementById('tripDateInputsContainer');
+            
+            if (period === 'all') {
+                container.innerHTML = '';
+            } else if (period === 'daily') {
+                container.innerHTML = `<input type="date" id="tripsDateFilter" onchange="renderTripsStats()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500" value="${new Date().toISOString().slice(0, 10)}">`;
+            } else if (period === 'monthly') {
+                container.innerHTML = `<input type="month" id="tripsMonthFilter" onchange="renderTripsStats()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500" value="${new Date().toISOString().slice(0, 7)}">`;
+            } else if (period === 'custom') {
+                container.innerHTML = `
+                    <input type="date" id="tripsStartDate" onchange="renderTripsStats()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                    <span class="text-sm font-black text-slate-600">إلى</span>
+                    <input type="date" id="tripsEndDate" onchange="renderTripsStats()" class="p-3 border-2 border-slate-300 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-brand-500">
+                `;
+            }
+        }
+
+        function renderTripsStats() {
+            const container = document.getElementById('driversStatsCards');
+            if (!container) return;
+
+            const role = window.state.currentUserRole;
+            const searchQuery = (document.getElementById('tripSearchInput').value || '').toLowerCase();
+            const selectedDriverFilter = document.getElementById('tripDriverFilter').value;
+            const period = document.getElementById('tripPeriodFilter').value;
+
+            let matchDateCondition = (dateISO) => {
+                if (!dateISO) return false;
+                if (period === 'all') return true;
+                if (period === 'daily') {
+                    const dInput = document.getElementById('tripsDateFilter');
+                    return dInput && dateISO === dInput.value;
+                }
+                if (period === 'monthly') {
+                    const mInput = document.getElementById('tripsMonthFilter');
+                    return mInput && dateISO.startsWith(mInput.value);
+                }
+                if (period === 'custom') {
+                    const startInput = document.getElementById('tripsStartDate');
+                    const endInput = document.getElementById('tripsEndDate');
+                    const sDate = startInput ? startInput.value : '';
+                    const eDate = endInput ? endInput.value : '';
+                    if (!sDate || !eDate) return true;
+                    return dateISO >= sDate && dateISO <= eDate;
+                }
+                return true;
+            };
+
+            let filteredDrivers = window.state.drivers.filter(driver => {
+                const matchName = driver.name.toLowerCase().includes(searchQuery) || (driver.vehicleCode || '').toLowerCase().includes(searchQuery);
+                const matchDropdown = !selectedDriverFilter || driver.name === selectedDriverFilter;
+                return matchName && matchDropdown;
+            });
+
+            if (filteredDrivers.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-slate-400 font-black text-base py-8">لا توجد نتائج مطابقة للبحث أو السواق المختارين</p>`;
+                return;
+            }
+
+            container.innerHTML = filteredDrivers.map((driver, index) => {
+                const driverInvoices = window.state.invoices.filter(inv => {
+                    if (role === 'north' && inv.site !== 'شمالي') return false;
+                    if (role === 'south' && inv.site !== 'جنوبي') return false;
+                    return inv.driver === driver.name && matchDateCondition(inv.dateISO);
+                });
+
+                driverInvoices.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                const tripCount = driverInvoices.length;
+                const totalMeters = driverInvoices.reduce((sum, inv) => sum + (parseFloat(inv.suppliedQty) || 0), 0);
+                const listId = `driver-trips-list-${index}`;
+
+                return `
+                    <div class="bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg">
+                                    <i class="fa-solid fa-truck"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-black text-slate-900 text-base">${driver.name}</h4>
+                                    <p class="text-sm font-bold text-slate-600">رمز الآلية: ${driver.vehicleCode}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 text-center">
+                            <div class="bg-white p-3 rounded-xl border-2 border-slate-200">
+                                <p class="text-xs font-black text-slate-500">عدد السفرات</p>
+                                <p class="text-xl font-black text-slate-900 mt-0.5">${tripCount}</p>
+                            </div>
+                            <div class="bg-white p-3 rounded-xl border-2 border-slate-200">
+                                <p class="text-xs font-black text-slate-500">إجمالي المنقول</p>
+                                <p class="text-xl font-black text-brand-600 mt-0.5">${totalMeters.toFixed(1)} م³</p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button onclick="toggleDriverTrips('${listId}')" class="w-full py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-sm font-black transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-list-ul"></i>
+                                <span>عرض تفاصيل السفرات (${tripCount})</span>
+                            </button>
+                        </div>
+
+                        <div id="${listId}" class="hidden space-y-2.5 pt-3 border-t border-slate-200 max-h-52 overflow-y-auto">
+                            ${driverInvoices.length === 0 ? `<p class="text-center text-sm font-bold text-slate-400 py-3">لا توجد سفرات في هذه الفترة</p>` : 
+                                driverInvoices.map(inv => `
+                                    <div class="bg-white p-3 rounded-xl border border-slate-200 text-xs flex items-center justify-between font-bold">
+                                        <div>
+                                            <span class="font-black text-slate-900 text-sm">${inv.invoiceNo}</span>
+                                            <span class="text-slate-600 block mt-0.5">${inv.datetime} | ${inv.customer}</span>
+                                        </div>
+                                        <div class="text-left">
+                                            <span class="font-black text-brand-600 text-sm">${inv.suppliedQty} م³</span>
+                                            <span class="text-slate-500 block mt-0.5">${inv.concreteType}</span>
+                                        </div>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleDriverTrips(listId) {
+            const el = document.getElementById(listId);
+            if (el) el.classList.toggle('hidden');
+        }
+
+        function renderConcreteStats() {
+            const container = document.getElementById('concreteStatsContainer');
+            if (!container) return;
+            const role = window.state.currentUserRole;
+
+            if (window.state.concreteTypes.length === 0) {
+                container.innerHTML = `<p class="col-span-full text-center text-slate-400 font-black text-base py-8">لا توجد أصناف خرسانة مضافة</p>`;
+                return;
+            }
+
+            container.innerHTML = window.state.concreteTypes.map(c => {
+                const totalMeters = window.state.invoices
+                    .filter(inv => {
+                        if (role === 'north' && inv.site !== 'شمالي') return false;
+                        if (role === 'south' && inv.site !== 'جنوبي') return false;
+                        return inv.concreteType === c.name;
+                    })
+                    .reduce((sum, inv) => sum + (parseFloat(inv.suppliedQty) || 0), 0);
+
+                return `
+                    <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-sm flex items-center justify-between border-2 border-slate-700">
+                        <div>
+                            <p class="text-sm font-bold text-brand-400">صنف الخرسانة</p>
+                            <h3 class="text-2xl font-black mt-1">${c.name}</h3>
+                            <p class="text-sm font-bold text-slate-300 mt-3">إجمالي التجهيز: <span class="text-white font-black text-base">${totalMeters.toFixed(1)} م³</span></p>
+                        </div>
+                        <div class="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center text-2xl text-brand-400">
+                            <i class="fa-solid fa-cubes-stacked"></i>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderCustomersList() {
+            const ul = document.getElementById('customersList');
+            if (!ul) return;
+            ul.innerHTML = window.state.customers.map(c => `
+                <li class="py-3.5 px-2 flex items-center justify-between font-black text-slate-800">
+                    <span class="text-sm">${c.name}</span>
+                    <button onclick="deleteCustomer('${c.id}')" class="text-red-500 hover:text-red-700 p-1" title="حذف الزبون"><i class="fa-solid fa-xmark text-base"></i></button>
+                </li>
+            `).join('');
+        }
+
+        function renderConcreteList() {
+            const ul = document.getElementById('concreteList');
+            if (!ul) return;
+            ul.innerHTML = window.state.concreteTypes.map(c => `
+                <li class="py-3.5 px-2 flex items-center justify-between font-black text-slate-800">
+                    <span class="text-sm">${c.name}</span>
+                    <button onclick="deleteConcreteType('${c.id}')" class="text-red-500 hover:text-red-700 p-1" title="حذف الصنف"><i class="fa-solid fa-xmark text-base"></i></button>
+                </li>
+            `).join('');
+        }
+
+        function renderDriversList() {
+            const ul = document.getElementById('driversList');
+            if (!ul) return;
+            ul.innerHTML = window.state.drivers.map(d => `
+                <li class="py-3.5 px-2 flex items-center justify-between font-black text-slate-800">
+                    <div>
+                        <span class="text-sm block">${d.name}</span>
+                        <span class="text-slate-500 text-xs font-bold block mt-0.5">${d.vehicleCode}</span>
+                    </div>
+                    <button onclick="deleteDriver('${d.id}')" class="text-red-500 hover:text-red-700 p-1" title="حذف السائق"><i class="fa-solid fa-xmark text-base"></i></button>
+                </li>
+            `).join('');
+        }
+
+        function updatePasscodeInputsUI() {
+            const passes = window.state.passcodes;
+            if (document.getElementById('passAdmin')) document.getElementById('passAdmin').value = passes.admin || '';
+            if (document.getElementById('passNorth')) document.getElementById('passNorth').value = passes.north || '';
+            if (document.getElementById('passSouth')) document.getElementById('passSouth').value = passes.south || '';
+            if (document.getElementById('passViewer')) document.getElementById('passViewer').value = passes.viewer || '';
+        }
+
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            const bgClass = type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-emerald-600' : 'bg-slate-900';
+            
+            toast.className = `${bgClass} text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-black flex items-center gap-3 transition duration-300 transform translate-x-5 opacity-0`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'} text-base"></i>
+                <span>${msg}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-x-5', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
