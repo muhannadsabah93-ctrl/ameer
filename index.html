@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معمل القالب للكونكريت - نظام الإدارة المتكامل</title>
+    <!-- Google Fonts: Cairo & Tajawal -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            darkBg: '#090d16',
+                            cardBg: '#131c2e',
+                            hexBorder: '#334155',
+                            neonTeal: '#14b8a6',
+                            neonGlow: '#0d9488',
+                            accentCyan: '#06b6d4',
+                            mutedText: '#94a3b8'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        tajawal: ['Tajawal', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            background: radial-gradient(circle at center, #0f172a 0%, #070a12 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+        }
+
+        /* Outer Hexagon Outline & Glassmorphism Container */
+        .hex-outer-container {
+            position: relative;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 3px solid #334155;
+            box-shadow: 0 0 35px rgba(13, 148, 136, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.5);
+            clip-path: polygon(50% 0%, 100% 12%, 100% 88%, 50% 100%, 0% 88%, 0% 12%);
+            padding: 100px 40px 60px 40px;
+            margin: auto;
+            max-width: 1050px;
+        }
+
+        @media (max-width: 768px) {
+            .hex-outer-container {
+                clip-path: none;
+                border-radius: 2rem;
+                padding: 50px 20px 30px 20px;
+            }
+        }
+
+        /* Top Hex Badge Emblem */
+        .hex-logo-badge {
+            width: 150px;
+            height: 160px;
+            background: #0f172a;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            border: 3px solid #14b8a6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 25px rgba(20, 184, 166, 0.4);
+            z-index: 20;
+        }
+
+        .hex-logo-inner {
+            width: 130px;
+            height: 140px;
+            background: linear-gradient(135deg, #1e293b 0%, #0b1120 100%);
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #14b8a6;
+            text-align: center;
+            padding: 4px;
+        }
+
+        /* Dark Window Card Styling */
+        .window-card {
+            background: rgba(30, 41, 59, 0.65);
+            border: 1.5px solid #334155;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+        .window-card:hover {
+            transform: translateY(-6px);
+            border-color: #14b8a6;
+            box-shadow: 0 0 25px rgba(20, 184, 166, 0.25);
+        }
+
+        .window-header {
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid #334155;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        /* Custom Card Illustration Box */
+        .card-illustration {
+            height: 120px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        /* Modal Styles */
+        .iframe-modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .iframe-modal.hidden-modal {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between py-6 px-4">
+
+    <!-- Header Section -->
+    <header class="text-center mb-6">
+        <h1 class="text-3xl md:text-5xl font-black text-white tracking-wide drop-shadow-[0_2px_10px_rgba(20,184,166,0.3)]">
+            معمل القالب للكونكريت
+        </h1>
+        <p class="text-slate-400 font-medium text-sm md:text-base mt-2">نظام الإدارة الإلكتروني الموحد والتحكم المركزية</p>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full flex-grow flex items-center justify-center">
+        <div class="hex-outer-container w-full">
+            
+            <!-- Hexagon Emblem Badge -->
+            <div class="hex-logo-badge">
+                <div class="hex-logo-inner">
+                    <div class="w-10 h-10 bg-teal-500/20 border border-teal-400 rounded-lg rotate-45 flex items-center justify-center shadow-[0_0_12px_rgba(20,184,166,0.5)]">
+                        <i class="fa-solid fa-cubes text-teal-300 -rotate-45 text-xl"></i>
+                    </div>
+                    <span class="text-[11px] font-extrabold text-teal-200 mt-2 leading-tight">القالب للكونكريت</span>
+                </div>
+            </div>
+
+            <!-- Windows Grid Layout -->
+            <div class="space-y-6">
+
+                <!-- TOP ROW: 3 Cards (الآليات - الحسابات - المختبر) -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                    <!-- CARD 1: الآليات -->
+                    <div class="window-card">
+                        <div class="window-header">
+                            <span class="dot bg-red-500/80"></span>
+                            <span class="dot bg-amber-500/80"></span>
+                            <span class="dot bg-emerald-500/80"></span>
+                        </div>
+                        <div class="p-4 flex flex-col items-center flex-grow text-center">
+                            <h2 class="text-2xl font-black text-white mb-1 tracking-wide">الآليات</h2>
+                            
+                            <!-- SVG Illustration -->
+                            <div class="card-illustration">
+                                <svg width="120" height="90" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="45" cy="45" r="22" stroke="#14b8a6" stroke-width="3" stroke-dasharray="6 4" />
+                                    <circle cx="45" cy="45" r="10" fill="#64748b" />
+                                    <circle cx="80" cy="65" r="16" stroke="#06b6d4" stroke-width="3" stroke-dasharray="4 3" />
+                                    <path d="M25 80 L65 40 M65 40 L75 50" stroke="#94a3b8" stroke-width="5" stroke-linecap="round" />
+                                    <rect x="75" y="70" width="30" height="18" rx="4" fill="#0d9488" opacity="0.9" />
+                                    <path d="M85 70 V66 C85 64 95 64 95 66 V70" stroke="#f8fafc" stroke-width="2" />
+                                </svg>
+                            </div>
+
+                            <p class="text-xs text-slate-400 mb-4">إدارة وتتبع الآليات والمكائن والمحروقات</p>
+
+                            <!-- Buttons for Section URLs -->
+                            <div class="mt-auto w-full space-y-2">
+                                <button onclick="openLink('https://muhannadsabah93-ctrl.github.io/amaar/', 'قسم الزيوت - الآليات')" 
+                                        class="w-full py-2 px-3 bg-teal-950/60 hover:bg-teal-600 text-teal-300 hover:text-white text-xs font-bold rounded-lg border border-teal-500/40 transition-all flex items-center justify-between">
+                                    <span><i class="fa-solid fa-oil-can ml-2 text-teal-400"></i> قسم الزيوت</span>
+                                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                </button>
+                                <button onclick="openLink('https://muhannadsabah93-ctrl.github.io/muhsain/', 'قسم الكاز - الآليات')" 
+                                        class="w-full py-2 px-3 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold rounded-lg border border-slate-600 transition-all flex items-center justify-between">
+                                    <span><i class="fa-solid fa-gas-pump ml-2 text-cyan-400"></i> قسم الكاز</span>
+                                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 2: الحسابات -->
+                    <div class="window-card">
+                        <div class="window-header">
+                            <span class="dot bg-red-500/80"></span>
+                            <span class="dot bg-amber-500/80"></span>
+                            <span class="dot bg-emerald-500/80"></span>
+                        </div>
+                        <div class="p-4 flex flex-col items-center flex-grow text-center">
+                            <h2 class="text-2xl font-black text-white mb-1 tracking-wide">الحسابات</h2>
+                            
+                            <!-- SVG Illustration -->
+                            <div class="card-illustration">
+                                <svg width="120" height="90" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="35" y="15" width="50" height="70" rx="6" fill="#1e293b" stroke="#64748b" stroke-width="2" />
+                                    <rect x="43" y="25" width="34" height="16" rx="2" fill="#0f766e" opacity="0.6" stroke="#14b8a6" stroke-width="1.5" />
+                                    <!-- Calculator Buttons -->
+                                    <circle cx="48" cy="52" r="3" fill="#94a3b8"/> <circle cx="60" cy="52" r="3" fill="#94a3b8"/> <circle cx="72" cy="52" r="3" fill="#94a3b8"/>
+                                    <circle cx="48" cy="64" r="3" fill="#94a3b8"/> <circle cx="60" cy="64" r="3" fill="#94a3b8"/> <circle cx="72" cy="64" r="3" fill="#14b8a6"/>
+                                    <circle cx="48" cy="74" r="3" fill="#94a3b8"/> <circle cx="60" cy="74" r="3" fill="#94a3b8"/> <circle cx="72" cy="74" r="3" fill="#14b8a6"/>
+                                    <text x="12" y="45" font-family="sans-serif" font-size="10" font-weight="bold" fill="#38bdf8">(IQD)</text>
+                                    <text x="88" y="70" font-family="sans-serif" font-size="10" font-weight="bold" fill="#38bdf8">(USD)</text>
+                                </svg>
+                            </div>
+
+                            <p class="text-xs text-slate-400 mb-4">إدارة التحصيلات المالية والدفعات والميزانية</p>
+
+                            <!-- Direct Link Button -->
+                            <div class="mt-auto w-full">
+                                <button onclick="openLink('https://muhannadsabah93-ctrl.github.io/sajjad/', 'التحصيلات المالية - الحسابات')" 
+                                        class="w-full py-2.5 px-4 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-teal-900/30 transition-all flex items-center justify-between">
+                                    <span><i class="fa-solid fa-file-invoice-dollar ml-2"></i> التحصيلات المالية</span>
+                                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 3: المختبر -->
+                    <div class="window-card">
+                        <div class="window-header">
+                            <span class="dot bg-red-500/80"></span>
+                            <span class="dot bg-amber-500/80"></span>
+                            <span class="dot bg-emerald-500/80"></span>
+                        </div>
+                        <div class="p-4 flex flex-col items-center flex-grow text-center">
+                            <h2 class="text-2xl font-black text-white mb-1 tracking-wide">المختبر</h2>
+                            
+                            <!-- SVG Illustration -->
+                            <div class="card-illustration">
+                                <svg width="120" height="90" viewBox="0 0 120 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M40 85 H80 M60 85 V65 M60 65 L45 35 V20 H65 V35 Z" stroke="#94a3b8" stroke-width="2.5" stroke-linejoin="round" />
+                                    <path d="M49 45 H71" stroke="#14b8a6" stroke-width="2" />
+                                    <circle cx="55" cy="60" r="3" fill="#14b8a6" />
+                                    <circle cx="63" cy="52" r="2" fill="#06b6d4" />
+                                    <path d="M75 30 L95 15 M85 45 L105 30" stroke="#06b6d4" stroke-width="3" stroke-linecap="round" />
+                                    <text x="12" y="55" font-family="sans-serif" font-size="9" font-weight="bold" fill="#64748b">CH₂C₄</text>
+                                </svg>
+                            </div>
+
+                            <p class="text-xs text-slate-400 mb-4">اختبارات الفحص الخرساني والجودة</p>
+
+                            <!-- Direct Link Button -->
+                            <div class="mt-auto w-full">
+                                <button onclick="openLink('https://muhannadsabah93-ctrl.github.io/muhannad/', 'تبويب المختبر')" 
+                                        class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold rounded-lg border border-slate-600 transition-all flex items-center justify-between">
+                                    <span><i class="fa-solid fa-microscope ml-2 text-teal-400"></i> دخول المختبر</span>
+                                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- BOTTOM ROW: 2 Cards Centered (المواد - المعامل) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+
+                    <!-- CARD 4: المواد -->
+                    <div class="window-card">
+                        <div class="window-header">
+                            <span class="dot bg-red-500/80"></span>
+                            <span class="dot bg-amber-500/80"></span>
+                            <span class="dot bg-emerald-500/80"></span>
+                        </div>
+                        <div class="p-4 flex flex-col items-center flex-grow text-center">
+                            <h2 class="text-2xl font-black text-white mb-1 tracking-wide">المواد</h2>
+                            
+                            <!-- SVG Illustration -->
+                            <div class="card-illustration">
+                                <svg width="130" height="90" viewBox="0 0 130 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="15" y="55" width="35" height="25" rx="3" fill="#0f766e" />
+                                    <circle cx="25" cy="80" r="6" fill="#f8fafc" />
+                                    <circle cx="42" cy="80" r="6" fill="#f8fafc" />
+                                    <path d="M50 40 V75 H60" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" />
+                                    <rect x="75" y="30" width="45" height="50" rx="2" fill="none" stroke="#475569" stroke-width="2" />
+                                    <line x1="75" y1="55" x2="120" y2="55" stroke="#475569" stroke-width="2" />
+                                    <rect x="80" y="36" width="16" height="14" fill="#334155" stroke="#14b8a6" stroke-width="1" />
+                                    <rect x="99" y="36" width="16" height="14" fill="#334155" stroke="#14b8a6" stroke-width="1" />
+                                    <rect x="85" y="60" width="25" height="16" fill="#14b8a6" opacity="0.8" />
+                                </svg>
+                            </div>
+
+                            <p class="text-xs text-slate-400 mb-4">مخزون الركام والمواد الأولية للكونكريت</p>
+
+                            <!-- Direct Link Button -->
+                            <div class="mt-auto w-full">
+                                <button onclick="openLink('https://muhannadsabah93-ctrl.github.io/Alqalab/', 'تبويب المواد والمخازن')" 
+                                        class="w-full py-2.5 px-4 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-teal-900/30 transition-all flex items-center justify-between">
+                                    <span><i class="fa-solid fa-boxes-stacked ml-2"></i> دخول المواد</span>
+                                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CARD 5: المعامل -->
+                    <div class="window-card">
+                        <div class="window-header">
+                            <span class="dot bg-red-500/80"></span>
+                            <span class="dot bg-amber-500/80"></span>
+                            <span class="dot bg-emerald-500/80"></span>
+                        </div>
+                        <div class="p-4 flex flex-col items-center flex-grow text-center">
+                            <h2 class="text-2xl font-black text-white mb-1 tracking-wide">المعامل</h2>
+                            
+                            <!-- SVG Illustration -->
+                            <div class="card-illustration">
+                                <svg width="130" height="90" viewBox="0 0 130 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M15 80 V50 L35 60 V50 L55 60 V40 L75 40 V80 Z" fill="#1e293b" stroke="#94a3b8" stroke-width="2" />
+                                    <rect x="80" y="30" width="12" height="50" fill="#0d9488" />
+                                    <circle cx="84" cy="22" r="4" fill="#64748b" />
+                                    <circle cx="90" cy="15" r="6" fill="#475569" />
+                                    <path d="M100 80 L105 55 L118 65" stroke="#14b8a6" stroke-width="3" stroke-linecap="round" />
+                                    <circle cx="118" cy="65" r="4" fill="#06b6d4" />
+                                </svg>
+                            </div>
+
+                            <p class="text-xs text-slate-400 mb-4">خطوط الإنتاج والخلاطات المركزية</p>
+
+                            <!-- Direct Link Button -->
+                            <div class="mt-auto w-full">
+                                <button onclick="openLink('https://muhannadsabah93-ctrl.github.io/ameer/', 'تبويب المعامل والإنتاج')" 
+                                        class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-bold rounded-lg border border-slate-600 transition-all flex items-center justify-between">
+                                    <span><i class="fa-solid fa-industry ml-2 text-teal-400"></i> دخول المعامل</span>
+                                    <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Section with Designer Name -->
+    <footer class="text-center text-xs md:text-sm text-slate-400 mt-8 py-2">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 bg-slate-900/80 border border-slate-700/60 rounded-full shadow-inner">
+            <i class="fa-solid fa-code text-teal-400"></i>
+            <span>مصمم التطبيق: <strong class="text-teal-300 font-bold">مهند صباح</strong></span>
+        </div>
+    </footer>
+
+    <!-- Fullscreen Iframe Modal for System Windows -->
+    <div id="iframeModal" class="iframe-modal hidden-modal fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col justify-center items-center p-2 md:p-6">
+        <div class="bg-slate-900 w-full h-full max-w-7xl rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-700">
+            
+            <!-- Modal Header Bar -->
+            <div class="bg-slate-950 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <span class="inline-block w-3 h-3 rounded-full bg-teal-400 animate-pulse"></span>
+                    <h3 id="modalTitle" class="font-bold text-base md:text-lg text-slate-100">عرض النظام</h3>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <a id="externalLinkBtn" href="#" target="_blank" title="فتح في نافذة جديدة" 
+                       class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg transition-colors flex items-center gap-1.5 border border-slate-700">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        <span class="hidden sm:inline">فتح خارجي</span>
+                    </a>
+                    <button onclick="closeModal()" title="إغلاق" 
+                            class="w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white flex items-center justify-center transition-colors">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content / Frame -->
+            <div class="relative flex-grow bg-slate-950 w-full h-full">
+                <!-- Loader -->
+                <div id="iframeLoader" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-10">
+                    <div class="w-12 h-12 border-4 border-teal-500/30 border-t-teal-400 rounded-full animate-spin"></div>
+                    <span class="mt-3 text-sm text-slate-400 font-bold">جاري تحميل النظام...</span>
+                </div>
+                
+                <iframe id="systemIframe" class="w-full h-full border-0" src="" onload="hideLoader()"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const iframeModal = document.getElementById('iframeModal');
+        const systemIframe = document.getElementById('systemIframe');
+        const modalTitle = document.getElementById('modalTitle');
+        const externalLinkBtn = document.getElementById('externalLinkBtn');
+        const iframeLoader = document.getElementById('iframeLoader');
+
+        function openLink(url, title) {
+            modalTitle.textContent = title;
+            externalLinkBtn.href = url;
+            iframeLoader.style.display = 'flex';
+            systemIframe.src = url;
+            
+            iframeModal.classList.remove('hidden-modal');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            iframeModal.classList.add('hidden-modal');
+            systemIframe.src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        function hideLoader() {
+            iframeLoader.style.display = 'none';
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>
